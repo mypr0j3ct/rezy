@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Road Damage Detector</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      font-family: Arial, Poppins;
+      background-color: #ffffff;
+      color: #000000;
+    }
+    nav {
+      background-color: #262341;
+      padding: 10px;
+    }
+    nav ul {
+      list-style-type: none;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      justify-content: flex-start;
+    }
+    nav ul li {
+      margin-right: 20px;
+    }
+    nav ul li a {
+      color: #fbff00;
+      text-decoration: none;
+      font-weight: bold;
+    }
+    nav ul li a:hover {
+      text-decoration: underline;
+    }
+    .container {
+      display: flex;
+      justify-content: space-between;
+      width: 100%;
+      height: calc(100vh - 45px);
+      padding: 10px;
+      box-sizing: border-box;
+    }
+    .left-panel {
+      width: 60%;
+      display: flex;
+      flex-direction: column;
+    }
+    #search {
+      margin-bottom: 10px;
+      padding: 5px;
+      width: 100%;
+      box-sizing: border-box;
+    }
+    .table-wrapper {
+      overflow-y: auto;
+      flex-grow: 1;
+      border: 1px solid #ccc;
+      margin-bottom: 10px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    table, th, td {
+      border: 1px solid #262341;
+      padding: 8px;
+      text-align: left;
+    }
+    th {
+      background-color: #262341;
+      color: #fbff00;
+      white-space: nowrap;
+      position: sticky;
+      top: 0;
+      z-index: 2;
+    }
+    #map {
+      width: 39%;
+      height: calc(100%);
+      border: 3px solid #262341;
+      border-radius: 10px;
+      position: relative;
+      z-index: 1;
+    }
+    .nav-content {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .title {
+      font-weight: bold;
+      font-size: 18px;
+      color: #fbff00;
+      padding-right: 10px;
+    }
+    .action-buttons {
+      margin-top: 10px;
+      display: flex;
+      gap: 10px;
+      position: relative;
+      z-index: 2;
+    }
+    .action-buttons button {
+      padding: 8px 12px;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .btn-add { background-color: #28a745; color: white; }
+    .btn-edit { background-color: #ffc107; color: black; }
+    .btn-delete { background-color: #dc3545; color: white; }
+    .btn-repaired { background-color: #17a2b8; color: white; }
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0,0,0,0.5);
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+    }
+    .modal-content {
+      background-color: white;
+      padding: 20px;
+      border-radius: 5px;
+      width: 400px;
+    }
+    .modal-content h2 {
+      margin-top: 0;
+    }
+    .modal-content form {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .modal-content input, .modal-content select {
+      padding: 5px;
+      border: 1px solid #ccc;
+      border-radius: 3px;
+    }
+    .modal-content button {
+      padding: 8px;
+      border: none;
+      border-radius: 3px;
+      cursor: pointer;
+    }
+    .modal-content .btn-save { background-color: #28a745; color: white; }
+    .modal-content .btn-cancel { background-color: #6c757d; color: white; }
+    .popup-img {
+      max-width: 200px;
+      height: auto;
+      margin-top: 10px;
+    }
+</style>
+</head>
+<body>
+<nav>
+  <div class="nav-content">
+      <ul class="nav-left">
+        <li><a href="index.html">Home</a></li>
+        <li><a href="map.html">Map</a></li>
+        <li><a href="tabel.html">Data</a></li>
+      </ul>
+    <div class="title">Road Damage Detector</div>
+    <ul class="nav-right"><li><a href="#" id="logout-link">Logout <i class="fas fa-sign-out-alt"></i></a></li></ul>
+  </div>
+</nav>
+<div class="container">
+  <div class="left-panel">
+    <input type="text" id="search" placeholder="Search..." />
+    <div class="table-wrapper">
+      <table id="data-table">
+        <thead>
+          <tr>
+            <th><input type="checkbox" id="select-all"></th>
+            <th>No</th><th>Nama Jalan</th><th>Latitude</th><th>Longitude</th>
+            <th>Akurasi</th><th>Deskripsi</th><th>Tanggal</th><th>Diperbaiki</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+    <div class="action-buttons">
+      <button class="btn-add" onclick="openModal('add')"><i class="fas fa-plus"></i> Tambah</button>
+      <button class="btn-edit" onclick="openModal('edit')"><i class="fas fa-edit"></i> Edit</button>
+      <button class="btn-delete" onclick="deleteSelected()"><i class="fas fa-trash"></i> Hapus</button>
+      <button class="btn-repaired" onclick="markAsRepaired()"><i class="fas fa-check"></i> Sudah Diperbaiki</button>
+    </div>
+  </div>
+  <div id="map"></div>
+</div>
+  <div id="data-modal" class="modal">
+    <div class="modal-content">
+      <h2 id="modal-title">Tambah Data</h2>
+      <form id="data-form" enctype="multipart/form-data">
+        <input type="hidden" id="data-id">
+        <label for="latitude">Latitude:</label>
+        <input type="number" id="latitude" step="any" min="-90" max="90" required>
+        <label for="longitude">Longitude:</label>
+        <input type="number" id="longitude" step="any" min="-180" max="180" required>
+        <label for="jenis">Jenis:</label>
+        <select id="jenis" required>
+          <option value="Jalan Normal">Jalan Normal</option>
+          <option value="Jalan Berlubang">Jalan Berlubang</option>
+          <option value="Polisi Tidur">Polisi Tidur</option>
+          <option value="Speed Trap">Speed Trap</option>
+        </select>
+        <label for="akurasi">Akurasi:</label>
+        <input type="text" id="akurasi" required>
+        <label for="tanggal">Tanggal:</label>
+        <input type="date" id="tanggal" required>
+        <label for="foto">Foto:</label>
+        <input type="file" id="foto" name="foto" accept="image/jpeg,image/png">
+        <div>
+          <button type="submit" class="btn-save">Simpan</button>
+          <button type="button" class="btn-cancel" onclick="closeModal()">Batal</button>
+        </div>
+      </form>
+    </div>
+  </div>
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import {
+    getDatabase, ref, push, set, update, remove,
+    onValue, get, child           
+  } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyDAG63UtpyVpp6LfX2yNKfVZZMY-DJ15Nw",
+  authDomain: "rezy-49046.firebaseapp.com",
+  databaseURL: "https://rezy-49046-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "rezy-49046",
+  storageBucket: "rezy-49046.firebasestorage.app",
+  messagingSenderId: "874255058418",
+  appId: "1:874255058418:web:5138755327929f655d576b",
+  measurementId: "G-HY0P6ZRQ2X"
+};
+
+  initializeApp(firebaseConfig);
+  const db = getDatabase();
+
+  /* === AUTH GUARD === */
+  async function enforceAuth () {
+    const u = localStorage.getItem('username');
+    if (!u) { location.href = 'login.html'; return; }
+
+    // verify user exists
+    const snap = await get(child(ref(db), `users/${u}`));    /*  fixed  */
+    if (!snap.exists()) {
+      localStorage.removeItem('username');
+      location.href = 'login.html';
+    }
+  }
+  await enforceAuth();
+  /* === end AUTH GUARD === */
+
+/* ---------- Leaflet ---------- */
+const mapKey='KK9uUYD9NLRUOsWPfkZr';
+const map = L.map('map').setView([-7.29,112.78],13);
+L.tileLayer(`https://api.maptiler.com/maps/streets-v2/{z}/{x}/{y}.png?key=${mapKey}`,{
+  tileSize:512,zoomOffset:-1,attribution:'© MapTiler © OpenStreetMap'
+}).addTo(map);
+const markers=[];
+
+/* ---------- Util ---------- */
+const DESC = {"0":"Jalan Normal","1":"Jalan Berlubang","2":"Speed Trap","3":"Polisi Tidur"};
+const REV  = Object.fromEntries(Object.entries(DESC).map(([k,v])=>[v,k]));
+const tbody=document.querySelector('#data-table tbody');
+function toFloat(x){return parseFloat(String(x).replace(',','.'));}
+function reverseGeocode(lat,lon){
+  return fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lon}`,{
+          headers:{'User-Agent':'RoadDamageDetector/1.0'}
+         })
+         .then(r=>r.json()).then(j=>j.display_name||'—').catch(()=> '—');
+}
+
+/* ---------- Render realtime (marker & popup setelah streetName ada) ---------- */
+onValue(ref(db,'sensor'), snap=>{
+  tbody.innerHTML=''; markers.forEach(m=>m.remove()); markers.length=0;
+  let no=0;
+  snap.forEach(child=>{
+    const d = child.val(), id = child.key;
+    const lat=toFloat(d.latitude), lon=toFloat(d.longitude);
+    const typeTxt = DESC[d.description]||'???', repaired=d.condition==="1";
+
+    const tr=document.createElement('tr');
+    tr.dataset.id=id;
+    tr.innerHTML=`
+      <td><input type="checkbox" class="row-checkbox" value="${id}"></td>
+      <td>${++no}</td>
+      <td class="street">Memuat…</td>
+      <td>${lat}</td><td>${lon}</td>
+      <td>${d.accuracy}</td>
+      <td>${typeTxt}</td>
+      <td>${d.timestamp.split('T')[0]}</td>
+      <td style="text-align:center">
+        ${d.description==="1"
+          ? (repaired?'<i class="fas fa-check-circle" style="color:green"></i>'
+                      :'<i class="fas fa-times-circle" style="color:red"></i>')
+          :'<i class="fas fa-minus" style="color:gray"></i>'}
+      </td>`;
+    tbody.appendChild(tr);
+
+    /* — dapatkan nama jalan, lalu buat marker + popup — */
+    reverseGeocode(lat,lon).then(street=>{
+      tr.querySelector('.street').textContent=street;
+
+      const popup=`
+        <b>${typeTxt}</b><br>${street}<br>
+        Akurasi: ${d.accuracy}<br>
+        Tanggal: ${d.timestamp.split('T')[0]}<br>
+        ${d.description==="1"
+          ? (repaired?'Sudah diperbaiki ✅':'Belum diperbaiki ❌')
+          : ''}`;
+
+      const marker=L.marker([lat,lon]).addTo(map).bindPopup(popup);
+      markers.push(marker);
+
+      tr.addEventListener('click',e=>{
+        if(e.target.type!=='checkbox'){
+          map.setView([lat,lon],19,{animate:true});
+          setTimeout(()=>marker.openPopup(),300);
+        }
+      });
+    });
+  });
+});
+
+/* ---------- Search & Select-all ---------- */
+document.getElementById('search').addEventListener('input',e=>{
+  const q=e.target.value.toLowerCase();
+  tbody.querySelectorAll('tr').forEach(r=>r.style.display=r.textContent.toLowerCase().includes(q)?'':'none');
+});
+document.getElementById('select-all').addEventListener('change',e=>{
+  document.querySelectorAll('.row-checkbox').forEach(cb=>cb.checked=e.target.checked);
+});
+
+/* ---------- Modal ---------- */
+const modal=document.getElementById('data-modal');
+function openModal(mode){
+  document.getElementById('data-form').reset();
+  document.getElementById('data-id').value='';
+  document.getElementById('tanggal').value=new Date().toISOString().split('T')[0];
+  document.getElementById('modal-title').textContent=(mode==='add'?'Tambah':'Edit')+' Data';
+
+  if(mode==='edit'){
+    const sel=[...document.querySelectorAll('.row-checkbox:checked')];
+    if(sel.length!==1) return alert('Pilih tepat satu baris!');
+    const id=sel[0].value;
+    get(child(ref(db),'sensor/'+id)).then(s=>{
+      if(!s.exists()) return alert('Data tak ditemukan');
+      const d=s.val();
+      document.getElementById('data-id').value=id;
+      document.getElementById('latitude').value =toFloat(d.latitude);
+      document.getElementById('longitude').value=toFloat(d.longitude);
+      document.getElementById('jenis').value   =DESC[d.description];
+      document.getElementById('akurasi').value =d.accuracy;
+      document.getElementById('tanggal').value =d.timestamp.split('T')[0];
+      modal.style.display='flex';
+    });
+  }else modal.style.display='flex';
+}
+function closeModal(){modal.style.display='none';}
+window.openModal=openModal;window.closeModal=closeModal;
+
+/* ---------- Simpan ---------- */
+document.getElementById('data-form').addEventListener('submit',e=>{
+  e.preventDefault();
+  const id=document.getElementById('data-id').value;
+  const lat=parseFloat(document.getElementById('latitude').value);
+  const lon=parseFloat(document.getElementById('longitude').value);
+  if(lat<-90||lat>90||lon<-180||lon>180) return alert('Koordinat salah');
+
+  const data={
+    latitude:lat.toString(), longitude:lon.toString(),
+    accuracy:document.getElementById('akurasi').value,
+    description:REV[document.getElementById('jenis').value]||"0",
+    timestamp:document.getElementById('tanggal').value+"T00:00:00+07:00",
+    condition:"0"
+  };
+  if(id) update(ref(db,'sensor/'+id),data).then(closeModal);
+  else   set(push(ref(db,'sensor')),data).then(closeModal);
+});
+
+/* ---------- Delete ---------- */
+function deleteSelected(){
+  const ids=[...document.querySelectorAll('.row-checkbox:checked')].map(cb=>cb.value);
+  if(!ids.length) return alert('Pilih data!');
+  if(!confirm(`Hapus ${ids.length} data?`)) return;
+  Promise.all(ids.map(id=>remove(ref(db,'sensor/'+id))));
+}
+window.deleteSelected=deleteSelected;
+
+/* ---------- Tandai diperbaiki ---------- */
+function markAsRepaired(){
+  const ids=[...document.querySelectorAll('.row-checkbox:checked')].map(cb=>cb.value);
+  if(!ids.length) return alert('Pilih data!');
+  const salah=ids.some(id=>{
+    const row=tbody.querySelector(`tr[data-id="${id}"]`);
+    return row && row.children[6].textContent!=='Jalan Berlubang';
+  });
+  if(salah) return alert('Yang boleh hanya “Jalan Berlubang”');
+  if(!confirm('Tandai sudah diperbaiki?')) return;
+  Promise.all(ids.map(id=>update(ref(db,'sensor/'+id),{condition:"1"})));
+}
+window.markAsRepaired=markAsRepaired;
+
+document.getElementById('logout-link')?.addEventListener('click', e=>{
+  e.preventDefault();
+  localStorage.removeItem('username');
+  location.href = 'login.html';
+});
+</script>
+</body>
+</html>

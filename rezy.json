@@ -1,0 +1,30 @@
+{
+  "sensor": {
+    "2023-04-01T12:45:00+07:00": {
+      "longitude": "112,810944",
+      "latitude": "-7,292383",
+      "accuracy": "10.5",
+      "description": "0",
+      "timestamp": "2023-04-01T12:45:00+07:00",
+      "condition": "0"
+    },
+    "2023-12-31T18:30:00+07:00": {
+      "longitude": "112,801903",
+      "latitude": "-7,291743",
+      "accuracy": "2.5",
+      "description": "1",
+      "timestamp": "2023-12-31T18:30:00+07:00",
+      "condition": "1"
+    }
+  },
+  "users": {
+    "Mahrusul": {
+      "password": "Mahrusul123",
+      "username": "Mahrusul"
+    },
+    "Rezy": {
+      "password": "Rezy123",
+      "username": "Rezy"
+    }
+  }
+}

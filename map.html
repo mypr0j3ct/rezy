@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Map – Road Damage Detector</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+html,body{margin:0;padding:0;overflow:hidden;font-family:Arial,Poppins;background:#fff}
+nav{background:#262341;padding:10px}
+nav ul{list-style:none;margin:0;padding:0;display:flex}
+nav li{margin-right:20px}
+nav a{color:#fbff00;text-decoration:none;font-weight:bold}
+nav a:hover{text-decoration:underline}
+.nav-content{display:flex;justify-content:space-between;align-items:center}
+.title{font-weight:bold;font-size:18px;color:#fbff00}
+#map{width:100%;height:calc(100vh - 45px);border:3px solid #262341;border-radius:10px}
+.popup-img{max-width:200px;height:auto;margin-top:10px}
+</style>
+</head>
+<body>
+<nav>
+  <div class="nav-content">
+    <ul class="nav-left">
+      <li><a href="index.html">Home</a></li>
+      <li><a href="map.html">Map</a></li>
+      <li><a href="tabel.html">Data</a></li>
+    </ul>
+    <div class="title">Road Damage Detector</div>
+    <ul class="nav-right"><li><a href="#" id="logout-link">Logout <i class="fas fa-sign-out-alt"></i></a></li></ul>
+  </div>
+</nav>
+<div id="map"></div>
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import {
+    getDatabase, ref, onValue, get, child          /*  added get, child  */
+  } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyDAG63UtpyVpp6LfX2yNKfVZZMY-DJ15Nw",
+  authDomain: "rezy-49046.firebaseapp.com",
+  databaseURL: "https://rezy-49046-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "rezy-49046",
+  storageBucket: "rezy-49046.firebasestorage.app",
+  messagingSenderId: "874255058418",
+  appId: "1:874255058418:web:5138755327929f655d576b",
+  measurementId: "G-HY0P6ZRQ2X"
+};
+  initializeApp(firebaseConfig);
+  const db = getDatabase();
+
+  /* === AUTH GUARD === */
+  async function enforceAuth () {
+    const u = localStorage.getItem('username');
+    if (!u) { location.href = 'login.html'; return; }
+
+    const snap = await get(child(ref(db), `users/${u}`));    /*  fixed  */
+    if (!snap.exists()) {
+      localStorage.removeItem('username');
+      location.href = 'login.html';
+    }
+  }
+  await enforceAuth();
+  /* === end AUTH GUARD === */
+
+/* ---------- 2. Leaflet ---------- */
+const mapKey = 'KK9uUYD9NLRUOsWPfkZr';
+const map = L.map('map').setView([-7.29,112.78],13);
+L.tileLayer(`https://api.maptiler.com/maps/streets-v2/{z}/{x}/{y}.png?key=${mapKey}`,{
+  tileSize:512,zoomOffset:-1,attribution:'© MapTiler © OpenStreetMap'
+}).addTo(map);
+const markers=[];
+
+/* ---------- 3. Util ---------- */
+const DESC = {"0":"Jalan Normal","1":"Jalan Berlubang","2":"Speed Trap","3":"Polisi Tidur"};
+function toFloat(x){return parseFloat(String(x).replace(',','.'));}
+function reverseGeocode(lat,lon){
+  return fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lon}`,{
+          headers:{'User-Agent':'RoadDamageDetector/1.0'}
+         })
+         .then(r=>r.json()).then(j=>j.display_name||'—').catch(()=> '—');
+}
+
+/* ---------- 4. Render semua titik ---------- */
+onValue(ref(db,'sensor'), snap=>{
+  markers.forEach(m=>m.remove()); markers.length=0;
+  snap.forEach(child=>{
+    const d = child.val();
+    const lat = toFloat(d.latitude), lon = toFloat(d.longitude);
+    const typeTxt = DESC[d.description]||'???';
+    const repaired = d.condition==="1";
+    const tanggal = d.timestamp?.split('T')[0] || '—';
+
+    reverseGeocode(lat,lon).then(street=>{
+      const popup = `
+        <b>${typeTxt}</b><br>${street}<br>
+        Akurasi: ${d.accuracy}<br>
+        Tanggal: ${tanggal}<br>
+        ${d.description==="1"
+          ? (repaired?'Sudah diperbaiki ✅':'Belum diperbaiki ❌')
+          : ''}`;
+      const marker = L.marker([lat,lon]).addTo(map).bindPopup(popup);
+      markers.push(marker);
+    });
+  });
+});
+
+document.getElementById('logout-link')?.addEventListener('click', e=>{
+  e.preventDefault();
+  localStorage.removeItem('username');
+  location.href = 'login.html';
+});
+</script>
+</body>
+</html>
