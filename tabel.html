@@ -4,7 +4,6 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>Data – Road Damage Detector</title>
-
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
 
 <style>
@@ -220,7 +219,9 @@
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
   import {
-    getDatabase, ref, onValue, get, child          /*  added get, child  */
+    getDatabase, ref,
+    push, set, update, remove,    
+    onValue, get, child
   } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 
 const firebaseConfig = {
@@ -233,6 +234,7 @@ const firebaseConfig = {
   appId: "1:874255058418:web:5138755327929f655d576b",
   measurementId: "G-HY0P6ZRQ2X"
 };
+
   initializeApp(firebaseConfig);
   const db = getDatabase();
 
