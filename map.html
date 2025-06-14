@@ -36,7 +36,7 @@ nav a:hover{text-decoration:underline}
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
   import {
-    getDatabase, ref, onValue, get, child          /*  added get, child  */
+    getDatabase, ref, onValue, get, child
   } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 
 const firebaseConfig = {
@@ -57,7 +57,7 @@ const firebaseConfig = {
     const u = localStorage.getItem('username');
     if (!u) { location.href = 'login.html'; return; }
 
-    const snap = await get(child(ref(db), `users/${u}`));    /*  fixed  */
+    const snap = await get(child(ref(db), `users/${u}`));
     if (!snap.exists()) {
       localStorage.removeItem('username');
       location.href = 'login.html';
@@ -66,7 +66,7 @@ const firebaseConfig = {
   await enforceAuth();
   /* === end AUTH GUARD === */
 
-/* ---------- 2. Leaflet ---------- */
+/* ---------- Leaflet ---------- */
 const mapKey = 'KK9uUYD9NLRUOsWPfkZr';
 const map = L.map('map').setView([-7.29,112.78],13);
 L.tileLayer(`https://api.maptiler.com/maps/streets-v2/{z}/{x}/{y}.png?key=${mapKey}`,{
@@ -74,7 +74,7 @@ L.tileLayer(`https://api.maptiler.com/maps/streets-v2/{z}/{x}/{y}.png?key=${mapK
 }).addTo(map);
 const markers=[];
 
-/* ---------- 3. Util ---------- */
+/* ---------- Util ---------- */
 const DESC = {"0":"Jalan Normal","1":"Jalan Berlubang","2":"Speed Trap","3":"Polisi Tidur"};
 function toFloat(x){return parseFloat(String(x).replace(',','.'));}
 async function reverseGeocode(lat, lon) {
@@ -84,7 +84,7 @@ async function reverseGeocode(lat, lon) {
          .then(r=>r.json()).then(j=>j.display_name||'—').catch(()=> '—');
 }
 
-/* ---------- 4. Render semua titik ---------- */
+/* ---------- Render semua titik (Logika yang Diperbaiki) ---------- */
 onValue(ref(db,'sensor'), snap=>{
   markers.forEach(m=>m.remove()); markers.length=0;
   snap.forEach(child=>{
@@ -94,13 +94,15 @@ onValue(ref(db,'sensor'), snap=>{
     const repaired = d.condition==="1";
     const tanggal = d.timestamp?.split('T')[0] || '—';
 
+    // Dapatkan nama jalan, lalu buat marker + popup
     reverseGeocode(lat,lon).then(street=>{
-      tr.querySelector('.street').textContent=street;
+      // Baris yang error (`tr.querySelector`) telah dihapus.
+      // Langsung buat popup dan marker.
 
       const popup=`
         <b>${typeTxt}</b><br>${street}<br>
         Akurasi: ${d.accuracy}<br>
-        Tanggal: ${d.timestamp.split('T')[0]}<br>
+        Tanggal: ${tanggal}<br>
         ${d.description==="1"
           ? (repaired?'Sudah diperbaiki ✅':'Belum diperbaiki ❌')
           : ''}`;
