@@ -279,7 +279,7 @@ const DESC = {"0":"Jalan Normal","1":"Jalan Berlubang","2":"Speed Trap","3":"Pol
 const REV  = Object.fromEntries(Object.entries(DESC).map(([k,v])=>[v,k]));
 const tbody=document.querySelector('#data-table tbody');
 function toFloat(x){return parseFloat(String(x).replace(',','.'));}
-function reverseGeocode(lat,lon){
+async function reverseGeocode(lat, lon) {
   return fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lon}`,{
           headers:{'User-Agent':'RoadDamageDetector/1.0'}
          })
@@ -302,7 +302,7 @@ onValue(ref(db,'sensor'), snap=>{
       <td>${++no}</td>
       <td class="street">Memuat…</td>
       <td>${lat}</td><td>${lon}</td>
-      <td>${d.accuracy}</td>
+      <td>${d.accuracy} m</td>
       <td>${typeTxt}</td>
       <td>${d.timestamp.split('T')[0]}</td>
       <td style="text-align:center">
