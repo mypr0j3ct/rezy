@@ -77,7 +77,7 @@ const markers=[];
 /* ---------- 3. Util ---------- */
 const DESC = {"0":"Jalan Normal","1":"Jalan Berlubang","2":"Speed Trap","3":"Polisi Tidur"};
 function toFloat(x){return parseFloat(String(x).replace(',','.'));}
-function reverseGeocode(lat,lon){
+async function reverseGeocode(lat, lon) {
   return fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lon}`,{
           headers:{'User-Agent':'RoadDamageDetector/1.0'}
          })
@@ -95,10 +95,12 @@ onValue(ref(db,'sensor'), snap=>{
     const tanggal = d.timestamp?.split('T')[0] || '—';
 
     reverseGeocode(lat,lon).then(street=>{
-      const popup = `
+      tr.querySelector('.street').textContent=street;
+
+      const popup=`
         <b>${typeTxt}</b><br>${street}<br>
         Akurasi: ${d.accuracy}<br>
-        Tanggal: ${tanggal}<br>
+        Tanggal: ${d.timestamp.split('T')[0]}<br>
         ${d.description==="1"
           ? (repaired?'Sudah diperbaiki ✅':'Belum diperbaiki ❌')
           : ''}`;
